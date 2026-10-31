@@ -2,10 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Protected Trading View App</title>
-    <!-- TradingView Lightweight Charts Library -->
-    <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pro Live Trading App - SMC & Price Action</title>
     <style>
         :root {
             --bg-color: #121826;
@@ -16,246 +14,240 @@
             --text-color: #f0f3f8;
             --border-color: #2a3447;
         }
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background-color: var(--bg-color); color: var(--text-color); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-        
-        /* Modal & Auth Screen */
-        .auth-container {
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-color); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+        /* Login Overlay */
+        #auth-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(10, 14, 23, 0.9); display: flex; justify-content: center; align-items: center; z-index: 1000;
+            background: rgba(18, 24, 38, 0.95); display: flex; justify-content: center;
+            align-items: center; z-index: 1000; padding: 20px;
         }
-        .auth-box {
-            background: var(--panel-bg); padding: 30px; border-radius: 12px; width: 100%; max-width: 400px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.5); border: 1px solid var(--border-color); text-align: center;
+        .auth-card {
+            background: var(--panel-bg); padding: 30px; border-radius: 12px;
+            border: 1px solid var(--border-color); width: 100%; max-width: 400px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5); text-align: center;
         }
-        .auth-box h2 { margin-bottom: 20px; color: var(--text-color); }
-        .auth-box input {
-            width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 6px; border: 1px solid var(--border-color);
-            background: #121826; color: var(--text-color); font-size: 14px;
+        .auth-card h2 { margin-bottom: 10px; color: var(--text-color); }
+        .auth-card p { font-size: 14px; color: #9598a1; margin-bottom: 20px; }
+        .auth-card input {
+            width: 100%; padding: 12px; background: var(--bg-color); border: 1px solid var(--border-color);
+            color: var(--text-color); border-radius: 8px; font-size: 14px; margin-bottom: 15px; outline: none;
         }
-        .auth-box button {
-            width: 100%; padding: 12px; border: none; border-radius: 6px; background: var(--accent-color);
-            color: white; font-weight: bold; cursor: pointer; transition: background 0.2s;
+        .auth-card button {
+            width: 100%; padding: 12px; background: var(--accent-color); color: white;
+            border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer;
         }
-        .auth-box button:hover { background: #1e4bd8; }
+        .auth-card button:active { opacity: 0.8; }
         .error-msg { color: var(--danger-color); font-size: 13px; margin-top: 10px; display: none; }
 
-        /* Main App Layout */
+        /* App Header */
         header {
-            display: flex; justify-content: space-between; align-items: center; padding: 15px 25px;
-            background: var(--panel-bg); border-bottom: 1px solid var(--border-color);
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 10px 15px; background: var(--panel-bg); border-bottom: 1px solid var(--border-color);
+            height: 60px; flex-shrink: 0;
         }
-        .logo { font-size: 18px; font-weight: bold; color: var(--accent-color); }
-        .controls { display: flex; gap: 10px; align-items: center; }
-        button.btn-secondary {
-            background: #2a3447; color: var(--text-color); border: none; padding: 8px 14px;
-            border-radius: 6px; cursor: pointer; font-size: 13px;
+        .logo { font-size: 16px; font-weight: bold; color: var(--accent-color); display: flex; align-items: center; gap: 5px; }
+        .user-info { font-size: 12px; color: #9598a1; display: flex; flex-direction: column; align-items: flex-end; }
+        .user-email { color: var(--text-color); font-weight: 500; }
+        .btn-group { display: flex; gap: 8px; align-items: center; }
+        .action-btn {
+            background: var(--border-color); color: var(--text-color); border: none;
+            padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; font-weight: 600;
         }
-        button.btn-secondary:hover { background: #38455d; }
+        .logout-btn { background: var(--danger-color); }
 
-        .main-content { display: flex; flex: 1; position: relative; }
-        #chart-container { flex: 1; height: 100%; }
+        /* Chart Container */
+        #chart-container { flex-grow: 1; width: 100%; height: calc(100vh - 60px); }
 
-        /* Admin Panel Modal */
-        .modal {
+        /* Admin Modal */
+        #admin-modal {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.7); justify-content: center; align-items: center; z-index: 500;
+            background: rgba(0,0,0,0.7); z-index: 2000; justify-content: center; align-items: center; padding: 20px;
         }
-        .modal-content {
-            background: var(--panel-bg); padding: 25px; border-radius: 10px; width: 500px;
-            max-height: 80vh; overflow-y: auto; border: 1px solid var(--border-color);
+        .admin-card {
+            background: var(--panel-bg); width: 100%; max-width: 450px; border-radius: 12px;
+            border: 1px solid var(--border-color); padding: 20px; max-height: 80vh; overflow-y: auto;
         }
-        .user-list { margin-top: 15px; list-style: none; }
-        .user-item {
-            display: flex; justify-content: space-between; align-items: center; padding: 10px;
-            background: #121826; margin-bottom: 8px; border-radius: 6px; font-size: 13px;
+        .admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .close-admin { background: none; border: none; color: var(--text-color); font-size: 20px; cursor: pointer; }
+        .user-list { margin-top: 15px; display: flex; flex-direction: column; gap: 10px; }
+        .user-row {
+            display: flex; justify-content: space-between; align-items: center;
+            background: var(--bg-color); padding: 10px; border-radius: 8px; border: 1px solid var(--border-color);
         }
-        .badge-active { color: var(--success-color); font-weight: bold; }
-        .badge-inactive { color: var(--danger-color); font-weight: bold; }
+        .status-badge { font-size: 11px; padding: 3px 8px; border-radius: 4px; font-weight: bold; }
+        .status-active { background: rgba(0, 230, 118, 0.2); color: var(--success-color); }
+        .status-inactive { background: rgba(255, 82, 82, 0.2); color: var(--danger-color); }
     </style>
 </head>
 <body>
 
-    <!-- AUTHENTICATION SCREEN -->
-    <div id="authScreen" class="auth-container">
-        <div class="auth-box">
-            <h2>🔒 Member Access</h2>
-            <p style="font-size: 13px; color: #94a3b8; margin-bottom: 20px;">Enter your registered email to access the custom indicator chart.</p>
-            <input type="email" id="userEmailInput" placeholder="your.email@example.com">
-            <button onclick="verifyEmail()">Verify & Access</button>
-            <div id="authError" class="error-msg">Access denied or email not registered. Please contact Admin.</div>
+    <!-- Authentication Screen -->
+    <div id="auth-overlay">
+        <div class="auth-card">
+            <h2>Member Access</h2>
+            <p>Enter your registered email to access the live trading chart.</p>
+            <input type="email" id="user-email-input" placeholder="your-email@example.com">
+            <button onclick="handleLogin()">Verify & Access</button>
+            <div id="auth-error" class="error-msg">Access denied or email not authorized.</div>
         </div>
     </div>
 
-    <!-- MAIN APP -->
+    <!-- Main App Header -->
     <header>
-        <div class="logo">📊 Pro SMC & Price Action Chart</div>
-        <div class="controls">
-            <span id="loggedInUserDisplay" style="font-size: 13px; color: #94a3b8;"></span>
-            <button class="btn-secondary" onclick="openAdminPanel()">⚙️ Admin Panel</button>
-            <button class="btn-secondary" onclick="logout()" style="background: #d32f2f;">Logout</button>
+        <div class="logo">📊 Pro SMC & Live Chart</div>
+        <div class="btn-group">
+            <div class="user-info">
+                <span>User:</span>
+                <span id="current-user-display" class="user-email"></span>
+            </div>
+            <button id="admin-btn" class="action-btn" onclick="openAdminPanel()" style="display:none;">Admin Panel</button>
+            <button class="action-btn logout-btn" onclick="handleLogout()">Logout</button>
         </div>
     </header>
 
-    <div class="main-content">
-        <div id="chart-container"></div>
+    <!-- TradingView Live Widget Container -->
+    <div id="chart-container">
+        <!-- TradingView Widget BEGIN -->
+        <div class="tradingview-widget-container" style="height:100%;width:100%">
+            <div class="tradingview-widget-container__widget" style="height:calc(100% - 32px);width:100%"></div>
+            <script type="text/javascript" src="https://s.tradingview.com/external-embedding/embed-widget-advanced-chart.js" async>
+            {
+                "width": "100%",
+                "height": "100%",
+                "symbol": "OANDA:XAUUSD",
+                "interval": "15",
+                "timezone": "Etc/UTC",
+                "theme": "dark",
+                "style": "1",
+                "locale": "en",
+                "enable_publishing": false,
+                "allow_symbol_change": true,
+                "calendar": false,
+                "support_host": "https://www.tradingview.com"
+            }
+            </script>
+        </div>
+        <!-- TradingView Widget END -->
     </div>
 
-    <!-- ADMIN PANEL MODAL -->
-    <div id="adminModal" class="modal">
-        <div class="modal-content">
-            <h3>⚙️ User Access Management</h3>
-            <p style="font-size: 12px; color: #94a3b8; margin: 5px 0 15px 0;">Add authorized user emails and control their access instantly.</p>
-            
-            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                <input type="email" id="newEmailInput" placeholder="user@gmail.com" style="flex: 1; padding: 8px; border-radius: 4px; border: 1px solid var(--border-color); background: #121826; color: white;">
-                <button onclick="addUser()" style="padding: 8px 15px; background: var(--accent-color); border: none; border-radius: 4px; color: white; cursor: pointer;">Add User</button>
+    <!-- Admin Panel Modal -->
+    <div id="admin-modal">
+        <div class="admin-card">
+            <div class="admin-header">
+                <h3>Admin Control Panel</h3>
+                <button class="close-admin" onclick="closeAdminPanel()">&times;</button>
             </div>
-
-            <h4>Registered Users:</h4>
-            <ul id="userListUI" class="user-list">
-                <!-- Dynamically populated -->
-            </ul>
-            <button onclick="closeAdminPanel()" class="btn-secondary" style="margin-top: 15px; width: 100%;">Close</button>
+            <p style="font-size: 13px; color: #9598a1; margin-bottom: 10px;">Add or remove authorized user emails.</p>
+            <div style="display: flex; gap: 8px; margin-bottom: 15px;">
+                <input type="email" id="new-user-email" placeholder="New user email" style="flex-grow: 1; padding: 8px; background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-color); border-radius: 6px;">
+                <button onclick="addNewUser()" style="padding: 8px 15px; background: var(--success-color); color: #000; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">Add</button>
+            </div>
+            <div class="user-list" id="user-list-container">
+                <!-- Dynamic User List -->
+            </div>
         </div>
     </div>
 
     <script>
-        // Default Authorized Users List (LocalStorage synchronized)
-        let authorizedUsers = JSON.parse(localStorage.getItem('trading_app_users')) || [
-            { email: "admin@trading.com", status: "active" },
-            { email: "lalith@example.com", status: "active" }
-        ];
+        // Initial Authorized Users Database (Stored in localStorage)
+        const defaultUsers = {
+            "lalith@example.com": { active: true, role: "admin" },
+            "admin@trading.com": { active: true, role: "admin" },
+            "user1@gmail.com": { active: true, role: "user" }
+        };
 
-        function saveUsers() {
-            localStorage.setItem('trading_app_users', JSON.stringify(authorizedUsers));
+        let dbUsers = JSON.parse(localStorage.getItem('trading_app_users')) || defaultUsers;
+
+        function saveDB() {
+            localStorage.setItem('trading_app_users', JSON.stringify(dbUsers));
         }
 
-        // Check if user is already logged in during session
+        // Check Session on Load
         window.onload = function() {
-            const activeUser = sessionStorage.getItem('current_user');
-            if (activeUser) {
-                const userObj = authorizedUsers.find(u => u.email === activeUser && u.status === 'active');
-                if (userObj) {
-                    document.getElementById('authScreen').style.display = 'none';
-                    document.getElementById('loggedInUserDisplay').innerText = `User: ${userObj.email}`;
-                    initChart();
-                } else {
-                    sessionStorage.removeItem('current_user');
+            const loggedUser = localStorage.getItem('current_logged_user');
+            if (loggedUser && dbUsers[loggedUser] && dbUsers[loggedUser].active) {
+                document.getElementById('auth-overlay').style.display = 'none';
+                document.getElementById('current-user-display').innerText = loggedUser;
+                if(dbUsers[loggedUser].role === 'admin') {
+                    document.getElementById('admin-btn').style.display = 'block';
                 }
             }
         };
 
-        function verifyEmail() {
-            const email = document.getElementById('userEmailInput').value.trim().toLowerCase();
-            const errorDiv = document.getElementById('authError');
-            
-            const user = authorizedUsers.find(u => u.email === email);
+        function handleLogin() {
+            const email = document.getElementById('user-email-input').value.trim().toLowerCase();
+            const errorDiv = document.getElementById('auth-error');
 
-            if (user && user.status === 'active') {
-                sessionStorage.setItem('current_user', email);
-                document.getElementById('authScreen').style.display = 'none';
-                document.getElementById('loggedInUserDisplay').innerText = `User: ${email}`;
-                initChart();
+            if (dbUsers[email] && dbUsers[email].active) {
+                localStorage.setItem('current_logged_user', email);
+                document.getElementById('auth-overlay').style.display = 'none';
+                document.getElementById('current-user-display').innerText = email;
+                if(dbUsers[email].role === 'admin') {
+                    document.getElementById('admin-btn').style.display = 'block';
+                } else {
+                    document.getElementById('admin-btn').style.display = 'none';
+                }
+                errorDiv.style.display = 'none';
+                location.reload(); // Refresh to load widget properly
             } else {
                 errorDiv.style.display = 'block';
             }
         }
 
-        function logout() {
-            sessionStorage.removeItem('current_user');
+        function handleLogout() {
+            localStorage.removeItem('current_logged_user');
             location.reload();
         }
 
-        // Initialize TradingView Lightweight Chart
-        let chart;
-        function initChart() {
-            if (chart) return;
-            const container = document.getElementById('chart-container');
-            chart = LightweightCharts.createChart(container, {
-                width: container.clientWidth,
-                height: container.clientHeight,
-                layout: { background: { color: '#121826' }, textColor: '#f0f3f8' },
-                grid: { vertLines: { color: '#1e2538' }, horzLines: { color: '#1e2538' } },
-                timeScale: { borderColor: '#2a3447' },
-                rightPriceScale: { borderColor: '#2a3447' }
-            });
-
-            const candleSeries = chart.addCandlestickSeries({
-                upColor: '#00e676', downColor: '#ff5252', borderVisible: false,
-                wickUpColor: '#00e676', wickDownColor: '#ff5252'
-            });
-
-            // Sample dummy price data for demonstration
-            candleSeries.setData([
-                { time: '2026-10-25', open: 2700, high: 2740, low: 2690, close: 2730 },
-                { time: '2026-10-26', open: 2730, high: 2760, low: 2715, close: 2720 },
-                { time: '2026-10-27', open: 2720, high: 2750, low: 2705, close: 2745 },
-                { time: '2026-10-28', open: 2745, high: 2780, low: 2730, close: 2770 },
-                { time: '2026-10-29', open: 2770, high: 2800, low: 2755, close: 2765 },
-                { time: '2026-10-30', open: 2765, high: 2810, low: 2760, close: 2800 }
-            ]);
-
-            window.addEventListener('resize', () => {
-                chart.applyOptions({ width: container.clientWidth, height: container.clientHeight });
-            });
-        }
-
-        // Admin Panel Logic
         function openAdminPanel() {
-            const pin = prompt("Enter Admin Security PIN (Default: admin123):");
-            if (pin === "admin123") {
-                document.getElementById('adminModal').style.display = 'flex';
-                renderUserList();
-            } else if (pin !== null) {
-                alert("Incorrect PIN!");
-            }
+            document.getElementById('admin-modal').style.display = 'flex';
+            renderUserList();
         }
 
         function closeAdminPanel() {
-            document.getElementById('adminModal').style.display = 'none';
+            document.getElementById('admin-modal').style.display = 'none';
         }
 
         function renderUserList() {
-            const listUI = document.getElementById('userListUI');
-            listUI.innerHTML = '';
-            authorizedUsers.forEach((u, index) => {
-                listUI.innerHTML += `
-                    <li class="user-item">
-                        <span>${u.email}</span>
-                        <div>
-                            <span class="${u.status === 'active' ? 'badge-active' : 'badge-inactive'}">${u.status.toUpperCase()}</span>
-                            <button onclick="toggleStatus(${index})" class="btn-secondary" style="padding: 2px 8px; margin-left: 8px;">Toggle</button>
-                            <button onclick="deleteUser(${index})" class="btn-secondary" style="padding: 2px 8px; background: #d32f2f; margin-left: 4px;">Delete</button>
-                        </div>
-                    </li>
+            const container = document.getElementById('user-list-container');
+            container.innerHTML = '';
+            for (let email in dbUsers) {
+                const user = dbUsers[email];
+                const row = document.createElement('div');
+                row.className = 'user-row';
+                row.innerHTML = `
+                    <div>
+                        <div style="font-size: 13px; font-weight: 500;">${email}</div>
+                        <div style="font-size: 11px; color: #9598a1;">Role: ${user.role}</div>
+                    </div>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <span class="status-badge ${user.active ? 'status-active' : 'status-inactive'}">${user.active ? 'Active' : 'Inactive'}</span>
+                        ${email !== 'lalith@example.com' ? `<button onclick="toggleUser('${email}')" class="action-btn" style="padding: 4px 8px; font-size: 10px;">Toggle</button>` : ''}
+                    </div>
                 `;
-            });
-        }
-
-        function addUser() {
-            const emailInput = document.getElementById('newEmailInput');
-            const email = emailInput.value.trim().toLowerCase();
-            if (email && !authorizedUsers.some(u => u.email === email)) {
-                authorizedUsers.push({ email: email, status: 'active' });
-                saveUsers();
-                emailInput.value = '';
-                renderUserList();
-            } else {
-                alert("Invalid email or already exists.");
+                container.appendChild(row);
             }
         }
 
-        function toggleStatus(index) {
-            authorizedUsers[index].status = authorizedUsers[index].status === 'active' ? 'inactive' : 'active';
-            saveUsers();
-            renderUserList();
+        function addNewUser() {
+            const emailInput = document.getElementById('new-user-email');
+            const email = emailInput.value.trim().toLowerCase();
+            if (email && !dbUsers[email]) {
+                dbUsers[email] = { active: true, role: "user" };
+                saveDB();
+                emailInput.value = '';
+                renderUserList();
+            }
         }
 
-        function deleteUser(index) {
-            authorizedUsers.splice(index, 1);
-            saveUsers();
-            renderUserList();
+        function toggleUser(email) {
+            if (dbUsers[email]) {
+                dbUsers[email].active = !dbUsers[email].active;
+                saveDB();
+                renderUserList();
+            }
         }
     </script>
 </body>
