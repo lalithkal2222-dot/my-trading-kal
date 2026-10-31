@@ -38,7 +38,6 @@
             width: 100%; padding: 12px; background: var(--accent-color); color: white;
             border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer;
         }
-        .auth-card button:active { opacity: 0.8; }
         .error-msg { color: var(--danger-color); font-size: 13px; margin-top: 10px; display: none; }
 
         /* App Header */
@@ -47,18 +46,23 @@
             padding: 10px 15px; background: var(--panel-bg); border-bottom: 1px solid var(--border-color);
             height: 60px; flex-shrink: 0;
         }
-        .logo { font-size: 16px; font-weight: bold; color: var(--accent-color); display: flex; align-items: center; gap: 5px; }
-        .user-info { font-size: 12px; color: #9598a1; display: flex; flex-direction: column; align-items: flex-end; }
+        .logo { font-size: 15px; font-weight: bold; color: var(--accent-color); display: flex; align-items: center; gap: 5px; }
+        .user-info { font-size: 11px; color: #9598a1; display: flex; flex-direction: column; align-items: flex-end; }
         .user-email { color: var(--text-color); font-weight: 500; }
-        .btn-group { display: flex; gap: 8px; align-items: center; }
+        .btn-group { display: flex; gap: 6px; align-items: center; }
         .action-btn {
             background: var(--border-color); color: var(--text-color); border: none;
-            padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; font-weight: 600;
+            padding: 5px 10px; border-radius: 6px; font-size: 11px; cursor: pointer; font-weight: 600;
         }
         .logout-btn { background: var(--danger-color); }
 
-        /* Chart Container */
-        #chart-container { flex-grow: 1; width: 100%; height: calc(100vh - 60px); }
+        /* Chart Container - Fixed for Mobile View */
+        #chart-container { 
+            flex-grow: 1; 
+            width: 100%; 
+            height: calc(100vh - 60px); 
+            position: relative;
+        }
 
         /* Admin Modal */
         #admin-modal {
@@ -96,13 +100,13 @@
 
     <!-- Main App Header -->
     <header>
-        <div class="logo">📊 Pro SMC & Live Chart</div>
+        <div class="logo">📊 Pro SMC Live</div>
         <div class="btn-group">
             <div class="user-info">
                 <span>User:</span>
                 <span id="current-user-display" class="user-email"></span>
             </div>
-            <button id="admin-btn" class="action-btn" onclick="openAdminPanel()" style="display:none;">Admin Panel</button>
+            <button id="admin-btn" class="action-btn" onclick="openAdminPanel()" style="display:none;">Admin</button>
             <button class="action-btn logout-btn" onclick="handleLogout()">Logout</button>
         </div>
     </header>
@@ -111,7 +115,7 @@
     <div id="chart-container">
         <!-- TradingView Widget BEGIN -->
         <div class="tradingview-widget-container" style="height:100%;width:100%">
-            <div class="tradingview-widget-container__widget" style="height:calc(100% - 32px);width:100%"></div>
+            <div class="tradingview-widget-container__widget" style="height:100%;width:100%"></div>
             <script type="text/javascript" src="https://s.tradingview.com/external-embedding/embed-widget-advanced-chart.js" async>
             {
                 "width": "100%",
@@ -144,14 +148,11 @@
                 <input type="email" id="new-user-email" placeholder="New user email" style="flex-grow: 1; padding: 8px; background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-color); border-radius: 6px;">
                 <button onclick="addNewUser()" style="padding: 8px 15px; background: var(--success-color); color: #000; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">Add</button>
             </div>
-            <div class="user-list" id="user-list-container">
-                <!-- Dynamic User List -->
-            </div>
+            <div class="user-list" id="user-list-container"></div>
         </div>
     </div>
 
     <script>
-        // Initial Authorized Users Database (Stored in localStorage)
         const defaultUsers = {
             "lalith@example.com": { active: true, role: "admin" },
             "admin@trading.com": { active: true, role: "admin" },
@@ -164,7 +165,6 @@
             localStorage.setItem('trading_app_users', JSON.stringify(dbUsers));
         }
 
-        // Check Session on Load
         window.onload = function() {
             const loggedUser = localStorage.getItem('current_logged_user');
             if (loggedUser && dbUsers[loggedUser] && dbUsers[loggedUser].active) {
@@ -186,11 +186,9 @@
                 document.getElementById('current-user-display').innerText = email;
                 if(dbUsers[email].role === 'admin') {
                     document.getElementById('admin-btn').style.display = 'block';
-                } else {
-                    document.getElementById('admin-btn').style.display = 'none';
                 }
                 errorDiv.style.display = 'none';
-                location.reload(); // Refresh to load widget properly
+                location.reload();
             } else {
                 errorDiv.style.display = 'block';
             }
